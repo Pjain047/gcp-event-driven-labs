@@ -27,7 +27,7 @@ resource "google_storage_bucket" "terraform_state" {
   force_destroy = false
 
   labels = {
-    environment = "shared"
+    environment = "bootstrap"
     purpose     = "terraform-state"
     application = "gcp-event-driven-labs"
     managed_by  = "terraform"

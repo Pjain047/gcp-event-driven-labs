@@ -1,0 +1,1 @@
+This bootstarp folder wwill have the tfstate storage bucket that is needed as initial level that will save the tfstate file.
