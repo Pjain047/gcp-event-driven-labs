@@ -14,3 +14,16 @@ tfstate-bootstrap.tfplan
 *.swp
 *.bak
 *.tmp
+
+
+****rraform-generated function packa***
+function-source.zip
+*.zip
+
+# Py***n
+__pycache__/
+*.***cod]
+.venv/
+
+# Credentials
+.env****em****vice-account*.json

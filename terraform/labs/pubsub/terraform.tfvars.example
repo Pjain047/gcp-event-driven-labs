@@ -1,0 +1,10 @@
+project_id = "your-google-cloud-project-id"
+
+region      = "us-central1"
+environment = "dev"
+
+topic_name = "orders-topic"
+
+function_name        = "process-order"
+function_runtime     = "python312"
+function_entry_point = "process_order"
