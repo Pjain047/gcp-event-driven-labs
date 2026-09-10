@@ -19,8 +19,7 @@ resource "google_storage_bucket" "function_source" {
   project = var.project_id
 
   name = (
-    "${var.project_id}-function-source-"
-    "${random_id.source_bucket_suffix.hex}"
+    "${var.project_id}-function-source-${random_id.source_bucket_suffix.hex}"
   )
 
   location = var.region
@@ -44,8 +43,7 @@ resource "google_storage_bucket" "function_source" {
 
 resource "google_storage_bucket_object" "function_source" {
   name = (
-    "order-processor/"
-    "function-${data.archive_file.function_source.output_md5}.zip"
+    "order-processor/function-${data.archive_file.function_source.output_md5}.zip"
   )
 
   bucket = google_storage_bucket.function_source.name
@@ -76,8 +74,7 @@ resource "google_project_iam_member" "function_log_writer" {
   role    = "roles/logging.logWriter"
 
   member = (
-    "serviceAccount:"
-    "${google_service_account.function_runtime.email}"
+    "serviceAccount:${google_service_account.function_runtime.email}"
   )
 }
 
