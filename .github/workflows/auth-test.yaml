@@ -27,6 +27,9 @@ jobs:
 
       - name: verify identity
         run: gcloud auth list
+    
+      - name: set project
+        run: gcloud config set project "${{ vars.GCP_PROJECT_ID }}"
 
       - name: list bucket
         run: gcloud storage buckets list

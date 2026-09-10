@@ -19,6 +19,7 @@ locals {
     "roles/pubsub.admin",
     "roles/cloudtasks.admin",
     "roles/eventarc.admin",
+    "roles/storage.viewer",
     "roles/iam.serviceAccountTokenCreator"
   ]
 }
