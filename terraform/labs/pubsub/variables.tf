@@ -38,3 +38,20 @@ variable "function_entry_point" {
   type        = string
   default     = "process_order"
 }
+
+variable "schema_name" {
+  description = "Pub/Sub schema name."
+  type        = string
+  default     = "orders-schema"
+}
+
+variable "firestore_location" {
+  description = "Location for the Firestore database."
+  type        = string
+  default     = "us-central1"
+}
+
+variable "alert_email" {
+  description = "Email address for alert notifications."
+  type        = string
+}

@@ -50,33 +50,7 @@ resource "google_storage_bucket_object" "function_source" {
   source = data.archive_file.function_source.output_path
 }
 
-resource "google_pubsub_topic" "orders" {
-  project = var.project_id
-  name    = var.topic_name
 
-  labels = local.common_labels
-
-  message_retention_duration = "86600s"
-}
-
-
-resource "google_service_account" "function_runtime" {
-  project = var.project_id
-
-  account_id = "order-processor-runtime"
-
-  display_name = "Order Processor Runtime"
-  description  = "Runtime identity for the order processor function."
-}
-
-resource "google_project_iam_member" "function_log_writer" {
-  project = var.project_id
-  role    = "roles/logging.logWriter"
-
-  member = (
-    "serviceAccount:${google_service_account.function_runtime.email}"
-  )
-}
 
 resource "google_cloudfunctions2_function" "order_processor" {
   project  = var.project_id
@@ -115,8 +89,9 @@ resource "google_cloudfunctions2_function" "order_processor" {
     )
 
     environment_variables = {
-      APP_ENVIRONMENT = var.environment
-      LOG_LEVEL       = "INFO"
+      APP_ENVIRONMENT   = var.environment
+      LOG_LEVEL         = "INFO"
+      ORDERS_COLLECTION = "orders"
     }
   }
 
@@ -133,6 +108,7 @@ resource "google_cloudfunctions2_function" "order_processor" {
 
   depends_on = [
     google_project_iam_member.function_log_writer,
+    google_project_iam_member.function_datastore_user,
   ]
 }
 

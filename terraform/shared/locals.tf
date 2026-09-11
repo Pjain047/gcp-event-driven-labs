@@ -8,7 +8,9 @@ locals {
     "cloudtasks.googleapis.com",
     "eventarc.googleapis.com",
     "iamcredentials.googleapis.com",
-    "sts.googleapis.com"
+    "sts.googleapis.com",
+    "firestore.googleapis.com",
+    "monitoring.googleapis.com"
   ]
 
   deployer_roles = [
@@ -20,6 +22,7 @@ locals {
     "roles/cloudtasks.admin",
     "roles/eventarc.admin",
     "roles/storage.viewer",
-    "roles/iam.serviceAccountTokenCreator"
+    "roles/iam.serviceAccountTokenCreator",
+    "roles/datastore.user"
   ]
 }

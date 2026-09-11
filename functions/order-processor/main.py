@@ -2,122 +2,114 @@ import base64
 import json
 
 import functions_framework
+from google.cloud import firestore
+
+
+ORDERS_COLLECTION = "orders"
+
+REQUIRED_ORDER_FIELDS = {
+    "orderId",
+    "customerId",
+    "amount",
+    "currency",
+}
+
+
+def log_event(severity, event, **fields):
+    print(json.dumps({
+        "severity": severity,
+        "event": event,
+        **fields,
+    }))
+
+
+def decode_order(pubsub_message):
+    encoded_data = pubsub_message.get("data")
+    if not encoded_data:
+        return None
+
+    decoded_data = base64.b64decode(encoded_data).decode("utf-8")
+    order = json.loads(decoded_data)
+
+    if not isinstance(order, dict):
+        raise ValueError("Order message must be a JSON object")
+
+    return order
+
+
+def validate_order(order):
+    missing_fields = REQUIRED_ORDER_FIELDS - order.keys()
+    if missing_fields:
+        raise ValueError(f"Missing required fields: {sorted(missing_fields)}")
+
+
+def save_order(order):
+    firestore.Client().collection(ORDERS_COLLECTION).document(
+        order["orderId"]
+    ).set(order)
 
 
 @functions_framework.cloud_event
 def process_order(cloud_event):
-    """
-    Receives an order message from Pub/Sub.
-    """
-
     print("Order processor function started")
 
-    event_data = cloud_event.data
-    pubsub_message = event_data.get("message", {})
+    pubsub_message = cloud_event.data.get("message", {})
+    message_id = pubsub_message.get("messageId", "unknown")
 
-    message_id = pubsub_message.get(
-        "messageId",
-        "unknown",
-    )
-
-    publish_time = pubsub_message.get(
-        "publishTime",
-        "unknown",
-    )
-
-    attributes = pubsub_message.get(
-        "attributes",
-        {},
-    )
-
-    encoded_data = pubsub_message.get("data")
-
-    if not encoded_data:
-        print(
-            json.dumps({
-                "severity": "WARNING",
-                "event": "EMPTY_MESSAGE",
-                "messageId": message_id,
-            })
+    try:
+        order = decode_order(pubsub_message)
+    except Exception as error:
+        log_event(
+            "ERROR",
+            "MESSAGE_DECODE_FAILED",
+            messageId=message_id,
+            error=str(error),
         )
+        raise
+
+    if order is None:
+        log_event("WARNING", "EMPTY_MESSAGE", messageId=message_id)
         return
 
     try:
-        decoded_data = base64.b64decode(
-            encoded_data
-        ).decode("utf-8")
-
-        order = json.loads(decoded_data)
-
-    except Exception as error:
-        print(
-            json.dumps({
-                "severity": "ERROR",
-                "event": "MESSAGE_DECODE_FAILED",
-                "messageId": message_id,
-                "error": str(error),
-            })
+        validate_order(order)
+    except ValueError as error:
+        log_event(
+            "ERROR",
+            "ORDER_VALIDATION_FAILED",
+            messageId=message_id,
+            missingFields=sorted(
+                REQUIRED_ORDER_FIELDS - order.keys()
+            ),
         )
-
         raise
 
-    required_fields = {
-        "orderId",
-        "customerId",
-        "amount",
-        "currency",
-    }
-
-    missing_fields = required_fields - order.keys()
-
-    if missing_fields:
-        print(
-            json.dumps({
-                "severity": "ERROR",
-                "event": "ORDER_VALIDATION_FAILED",
-                "messageId": message_id,
-                "missingFields": sorted(missing_fields),
-            })
-        )
-
-        raise ValueError(
-            f"Missing required fields: "
-            f"{sorted(missing_fields)}"
-        )
-
-    print(
-        json.dumps({
-            "severity": "INFO",
-            "event": "ORDER_RECEIVED",
-            "messageId": message_id,
-            "publishTime": publish_time,
-            "attributes": attributes,
-            "orderId": order["orderId"],
-            "customerId": order["customerId"],
-            "amount": order["amount"],
-            "currency": order["currency"],
-        })
+    log_event(
+        "INFO",
+        "ORDER_RECEIVED",
+        messageId=message_id,
+        publishTime=pubsub_message.get("publishTime", "unknown"),
+        attributes=pubsub_message.get("attributes", {}),
+        **{
+            field: order[field]
+            for field in REQUIRED_ORDER_FIELDS
+        },
     )
 
     if order.get("simulateFailure") is True:
-        print(
-            json.dumps({
-                "severity": "ERROR",
-                "event": "SIMULATED_FAILURE",
-                "orderId": order["orderId"],
-                "messageId": message_id,
-            })
+        log_event(
+            "ERROR",
+            "SIMULATED_FAILURE",
+            orderId=order["orderId"],
+            messageId=message_id,
         )
+        raise RuntimeError("Simulated downstream processing failure")
 
-        raise RuntimeError(
-            "Simulated downstream processing failure"
-        )
+    save_order(order)
 
-    print(
-        json.dumps({
-            "severity": "INFO",
-            "event": "ORDER_PROCESSED",
-            "orderId": order["orderId"],
-            "messageId": message_id,
-        })
+    log_event(
+        "INFO",
+        "ORDER_PROCESSED",
+        orderId=order["orderId"],
+        messageId=message_id,
     )
